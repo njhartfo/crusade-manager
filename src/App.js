@@ -513,9 +513,7 @@ const CrusadeCampaignApp = () => {
 
   // Main Dashboard
   if (currentView === 'dashboard') {
-    const userCampaigns = campaigns.filter(c => 
-      c.campaign_members?.some(m => m.user_id === user.id) || c.admin_id === user.id
-    );
+    const allCampaigns = campaigns;
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-900 via-gray-900 to-black text-white">
@@ -550,10 +548,10 @@ const CrusadeCampaignApp = () => {
               <h2 className="text-xl font-bold mb-4 flex items-center">
                 <Users className="mr-2" /> Campaigns
               </h2>
-              {userCampaigns.length === 0 ? (
-                <p className="text-gray-400 text-center py-8">No campaigns yet. Create your first campaign!</p>
+              {allCampaigns.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No campaigns available yet.</p>
               ) : (
-                userCampaigns.map(campaign => {
+                allCampaigns.map(campaign => {
                   const isAdmin = campaign.admin_id === user.id;
                   const isMember = campaign.campaign_members?.some(m => m.user_id === user.id);
                   
@@ -662,7 +660,7 @@ const CrusadeCampaignApp = () => {
                 <div className="flex justify-between items-center p-3 bg-gray-700 rounded-lg">
                   <span>Campaigns Joined</span>
                   <span className="font-bold text-green-400">
-                    {userCampaigns.length}
+                    {campaigns.filter(c => c.campaign_members?.some(m => m.user_id === user.id)).length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-gray-700 rounded-lg">
