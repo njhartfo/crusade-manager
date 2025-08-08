@@ -3,6 +3,9 @@ import { Users, Sword, Shield, Trophy, Plus, Edit, Save, Trash2, Eye, EyeOff, Lo
 import { supabase } from './supabaseClient';
 
 const CrusadeCampaignApp = () => {
+  //Define global admins
+  const ADMIN_EMAILS = ['njhartfo@gmail.com'];
+  
   // Auth state
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -59,6 +62,11 @@ const CrusadeCampaignApp = () => {
       'Tyranids'
     ]
   };
+
+  // Check if current user is a global admin
+  const isGlobalAdmin = () => {
+    return user && ADMIN_EMAILS.includes(user.email);
+  }
 
   // Initialize auth state
   // Initialize auth state
@@ -348,7 +356,7 @@ const CrusadeCampaignApp = () => {
           .from('units')
           .insert([{
             ...unit,
-            crusade_force_id: editingUnit.crusadeForceId
+            crusade_force_id: editingUnit.crusade_force_id || editingUnit.crusadeForceId  // Fixed line
           }]);
 
         if (error) throw error;
@@ -525,15 +533,17 @@ const CrusadeCampaignApp = () => {
         </nav>
 
         <div className="container mx-auto px-4 py-8">
-          <div className="mb-6">
-            <button 
-              onClick={() => setCreatingCampaign(true)}
-              className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-medium flex items-center"
-            >
-              <Plus className="mr-2" size={20} />
-              Create New Campaign
-            </button>
-          </div>
+          {isGlobalAdmin() && (
+            <div className="mb-6">
+              <button 
+                onClick={() => setCreatingCampaign(true)}
+                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-medium flex items-center"
+              >
+                <Plus className="mr-2" size={20} />
+                Create New Campaign
+              </button>
+            </div>
+          )}
 
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6 shadow-lg">
@@ -553,11 +563,11 @@ const CrusadeCampaignApp = () => {
                         <div>
                           <h3 className="font-bold text-lg flex items-center">
                             {campaign.name}
-                            {isAdmin && <span className="ml-2 text-xs bg-yellow-600 px-2 py-1 rounded">ADMIN</span>}
+                            {isGlobalAdmin && <span className="ml-2 text-xs bg-yellow-600 px-2 py-1 rounded">ADMIN</span>}
                           </h3>
                           <p className="text-gray-300">{campaign.description}</p>
                         </div>
-                        {isAdmin && (
+                        {isGlobalAdmin && (
                           <button 
                             onClick={() => deleteCampaign(campaign.id)}
                             className="text-red-400 hover:text-red-300"
@@ -675,7 +685,7 @@ const CrusadeCampaignApp = () => {
           </div>
 
           {/* Campaign Creation Modal */}
-          {creatingCampaign && (
+          {creatingCampaign && isGlobalAdmin && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-2xl">
                 <h3 className="text-xl font-bold mb-4 text-green-400 flex items-center">
@@ -780,7 +790,7 @@ const CrusadeCampaignApp = () => {
                   units={units.filter(u => u.crusade_force_id === force.id)}
                   onEdit={() => setEditingForce(force)}
                   onDelete={() => requestDeleteCrusadeForce(force)}
-                  onAddUnit={() => setEditingUnit({ crusadeForceId: force.id })}
+                  onAddUnit={() => setEditingUnit({ crusade_force_id: force.id })}
                   onEditUnit={(unit) => setEditingUnit(unit)}
                   onDeleteUnit={(unit) => requestDeleteUnit(unit)}
                 />
