@@ -741,8 +741,8 @@ const CrusadeCampaignApp = () => {
 
   // Campaign View - COMPLETE VERSION
   if (currentView === 'campaign' && selectedCampaign) {
-    const userCrusadeForces = crusadeForces.filter(f => 
-      f.user_id === user.id && f.campaign_id === selectedCampaign.id
+    const campaignCrusadeForces = crusadeForces.filter(f => 
+      f.campaign_id === selectedCampaign.id
     );
 
     return (
@@ -770,7 +770,7 @@ const CrusadeCampaignApp = () => {
         </nav>
 
         <div className="container mx-auto px-4 py-8">
-          {userCrusadeForces.length === 0 ? (
+          {campaignCrusadeForces.length === 0 ? (
             <div className="text-center py-12">
               <Sword className="mx-auto mb-4 text-gray-500" size={64} />
               <p className="text-xl text-gray-400 mb-4">No Crusade Forces yet</p>
@@ -783,7 +783,7 @@ const CrusadeCampaignApp = () => {
             </div>
           ) : (
             <div className="grid lg:grid-cols-2 gap-6">
-              {userCrusadeForces.map(force => (
+              {campaignCrusadeForces.map(force => (
                 <CrusadeForceCard 
                   key={force.id} 
                   force={force} 
@@ -793,6 +793,8 @@ const CrusadeCampaignApp = () => {
                   onAddUnit={() => setEditingUnit({ crusade_force_id: force.id })}
                   onEditUnit={(unit) => setEditingUnit(unit)}
                   onDeleteUnit={(unit) => requestDeleteUnit(unit)}
+                  currentUser={user}
+                  campaignMembers={selectedCampaign.campaign_members}
                 />
               ))}
             </div>
@@ -867,9 +869,13 @@ const CrusadeCampaignApp = () => {
 };
 
 // Crusade Force Card Component
-const CrusadeForceCard = ({ force, units, onEdit, onDelete, onAddUnit, onEditUnit, onDeleteUnit }) => {
+const CrusadeForceCard = ({ force, units, onEdit, onDelete, onAddUnit, onEditUnit, onDeleteUnit, currentUser, campaignMembers }) => {
   const totalPoints = units.reduce((sum, unit) => sum + (unit.points_cost || 0), 0);
   const totalCrusadePoints = units.reduce((sum, unit) => sum + (unit.crusade_points || 0), 0);
+  
+  // Find the owner's username
+  const owner = campaignMembers?.find(member => member.user_id === force.user_id);
+  const isOwnForce = currentUser.id === force.user_id;
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-600">
@@ -877,15 +883,20 @@ const CrusadeForceCard = ({ force, units, onEdit, onDelete, onAddUnit, onEditUni
         <div>
           <h3 className="text-xl font-bold text-red-400">{force.name}</h3>
           <p className="text-gray-300">{force.faction}</p>
+          <p className="text-sm text-yellow-400">
+            {isOwnForce ? 'Your Force' : `${owner?.username || 'Unknown Player'}'s Force`}
+          </p>
         </div>
-        <div className="flex space-x-2">
-          <button onClick={onEdit} className="text-blue-400 hover:text-blue-300">
-            <Edit size={16} />
-          </button>
-          <button onClick={onDelete} className="text-red-400 hover:text-red-300">
-            <Trash2 size={16} />
-          </button>
-        </div>
+        {isOwnForce && (
+          <div className="flex space-x-2">
+            <button onClick={onEdit} className="text-blue-400 hover:text-blue-300">
+              <Edit size={16} />
+            </button>
+            <button onClick={onDelete} className="text-red-400 hover:text-red-300">
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-4">
@@ -911,12 +922,14 @@ const CrusadeForceCard = ({ force, units, onEdit, onDelete, onAddUnit, onEditUni
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
           <h4 className="font-semibold">Units ({units.length})</h4>
-          <button 
-            onClick={onAddUnit}
-            className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm flex items-center"
-          >
-            <Plus size={12} className="mr-1" /> Add Unit
-          </button>
+          {isOwnForce && (
+            <button 
+              onClick={onAddUnit}
+              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm flex items-center"
+            >
+              <Plus size={12} className="mr-1" /> Add Unit
+            </button>
+          )}
         </div>
         <div className="space-y-1 max-h-32 overflow-y-auto">
           {units.map(unit => (
@@ -924,12 +937,16 @@ const CrusadeForceCard = ({ force, units, onEdit, onDelete, onAddUnit, onEditUni
               <span>{unit.name}</span>
               <div className="flex items-center space-x-2">
                 <span>{unit.points_cost || 0}pts</span>
-                <button onClick={() => onEditUnit(unit)} className="text-blue-400 hover:text-blue-300">
-                  <Edit size={12} />
-                </button>
-                <button onClick={() => onDeleteUnit(unit)} className="text-red-400 hover:text-red-300">
-                  <Trash2 size={12} />
-                </button>
+                {isOwnForce && (
+                  <>
+                    <button onClick={() => onEditUnit(unit)} className="text-blue-400 hover:text-blue-300">
+                      <Edit size={12} />
+                    </button>
+                    <button onClick={() => onDeleteUnit(unit)} className="text-red-400 hover:text-red-300">
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
