@@ -61,37 +61,50 @@ const CrusadeCampaignApp = () => {
   };
 
   // Initialize auth state
+  // Initialize auth state
   useEffect(() => {
     checkUser();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setAuthLoading(false);
-      if (session?.user) {
-        setCurrentView('dashboard');
-        loadUserData();
-      } else {
-        setCurrentView('login');
-      }
-    });
+  
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    setUser(session?.user ?? null);
+    setAuthLoading(false);
+    if (session?.user) {
+      setCurrentView('dashboard');
+      loadUserData();
+    } else {
+      setCurrentView('login');
+      // Clear data when logging out
+      setCampaigns([]);
+      setCrusadeForces([]);
+      setUnits([]);
+    }
+  });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  return () => subscription.unsubscribe();
+}, []);
+
+// Add this new useEffect to load data when user changes
+  useEffect(() => {
+    if (user && currentView === 'dashboard') {
+      loadUserData();
+    }
+  }, [user, currentView]);
 
   const checkUser = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        setCurrentView('dashboard');
-        loadUserData();
-      }
-    } catch (error) {
-      console.error('Error checking user:', error);
-    } finally {
-      setAuthLoading(false);
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+    if (user) {
+      setCurrentView('dashboard');
+      // Load data immediately when user is found
+      await loadUserData();
     }
-  };
+  } catch (error) {
+    console.error('Error checking user:', error);
+  } finally {
+    setAuthLoading(false);
+  }
+};
 
   const loadUserData = async () => {
     if (!user) return;
