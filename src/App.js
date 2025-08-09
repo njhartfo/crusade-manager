@@ -63,6 +63,21 @@ const CrusadeCampaignApp = () => {
     ]
   };
 
+  // Calculate unit rank based on experience
+  const getUnitRank = (experiencePoints) => {
+    if (experiencePoints >= 51) {
+      return {name: 'Legendary', icon: '⭐', color: 'text-purple-400', bgColor: 'bg-purple-900'};
+    } else if (experiencePoints >= 31) {
+      return {name: 'Heroic', icon: '🎖️', color: 'text-yellow-400', bgColor: 'bg-yellow-900'};
+    } else if (experiencePoints >= 16) {
+      return {name: 'Battle-Hardened', icon: '⚔️', color: 'text-red-400', bgColor: 'bg-red-900'};
+    } else if (experiencePoints >= 6) {
+      return {name: 'Blooded', icon: '🗡️', color: 'text-orange-400', bgColor: 'bg-orange-900'};
+    } else {
+      return {name: 'Battle-Ready', icon: '🛡️', color: 'text-gray-400', bgColor: 'bg-gray-900'};     
+    }
+  }
+
   // Check if current user is a global admin
   const isGlobalAdmin = () => {
     return user && ADMIN_EMAILS.includes(user.email);
@@ -793,6 +808,7 @@ const CrusadeCampaignApp = () => {
                   onDeleteUnit={(unit) => requestDeleteUnit(unit)}
                   currentUser={user}
                   campaignMembers={selectedCampaign.campaign_members}
+                  getUnitRank={getUnitRank}
                 />
               ))}
             </div>
@@ -814,6 +830,7 @@ const CrusadeCampaignApp = () => {
               unit={editingUnit} 
               onSave={saveUnit} 
               onCancel={() => setEditingUnit(null)}
+              getUnitRank={getUnitRank}
             />
           )}
 
@@ -867,7 +884,7 @@ const CrusadeCampaignApp = () => {
 };
 
 // Crusade Force Card Component
-const CrusadeForceCard = ({ force, units, onEdit, onDelete, onAddUnit, onEditUnit, onDeleteUnit, currentUser, campaignMembers }) => {
+const CrusadeForceCard = ({ force, units, onEdit, onDelete, onAddUnit, onEditUnit, onDeleteUnit, currentUser, campaignMembers, getUnitRank}) => {
   const totalPoints = units.reduce((sum, unit) => sum + (unit.points_cost || 0), 0);
   const totalCrusadePoints = units.reduce((sum, unit) => sum + (unit.crusade_points || 0), 0);
   
@@ -930,24 +947,38 @@ const CrusadeForceCard = ({ force, units, onEdit, onDelete, onAddUnit, onEditUni
           )}
         </div>
         <div className="space-y-1 max-h-32 overflow-y-auto">
-          {units.map(unit => (
-            <div key={unit.id} className="flex justify-between items-center bg-gray-700 rounded px-3 py-2 text-sm">
-              <span>{unit.name}</span>
-              <div className="flex items-center space-x-2">
-                <span>{unit.points_cost || 0}pts</span>
-                {isOwnForce && (
-                  <>
-                    <button onClick={() => onEditUnit(unit)} className="text-blue-400 hover:text-blue-300">
-                      <Edit size={12} />
-                    </button>
-                    <button onClick={() => onDeleteUnit(unit)} className="text-red-400 hover:text-red-300">
-                      <Trash2 size={12} />
-                    </button>
-                  </>
-                )}
+          {units.map(unit => {
+            const rank = getUnitRank(unit.experience_points || 0);
+            return (
+              <div key={unit.id} className="flex justify-between items-center bg-gray-700 rounded px-3 py-2 text-sm">
+                <div className="flex items-center space-x-2">
+                  <span>{unit.name}</span>
+                  {unit.experience_points > 0 && (
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs">{rank.icon}</span>
+                      <span className={`text-xs ${rank.color}`}>{rank.name}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span>{unit.points_cost || 0}pts</span>
+                  {unit.experience_points > 0 && (
+                    <span className="text-xs text-gray-400">{unit.experience_points}XP</span>
+                  )}
+                  {isOwnForce && (
+                    <>
+                      <button onClick={() => onEditUnit(unit)} className="text-blue-400 hover:text-blue-300">
+                        <Edit size={12} />
+                      </button>
+                      <button onClick={() => onDeleteUnit(unit)} className="text-red-400 hover:text-red-300">
+                        <Trash2 size={12} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -1103,13 +1134,14 @@ const CrusadeForceForm = ({ force, onSave, onCancel, factions }) => {
 };
 
 // Unit Form Component
-const UnitForm = ({ unit, onSave, onCancel }) => {
+const UnitForm = ({ unit, onSave, onCancel, getUnitRank }) => {
   const [formData, setFormData] = useState({
     name: unit.name || '',
     unit_type: unit.unit_type || '',
     sub_faction_keywords: unit.sub_faction_keywords || '',
     points_cost: unit.points_cost || 0,
     crusade_points: unit.crusade_points || 0,
+    experience_points: unit.experience_points || 0,
     equipment: unit.equipment || '',
     enhancements: unit.enhancements || '',
     battles_played: unit.battles_played || 0,
@@ -1171,6 +1203,30 @@ const UnitForm = ({ unit, onSave, onCancel }) => {
                   />
                 </div>
               </div>
+
+              <div>
+                <label className='block text-sm font-medium mb-2'>Experience Points</label>
+                <input
+                  type='number'
+                  value={formData.experience_points}
+                  onChange={(e) => setFormData({...formData, experience_points: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-red-500"
+                  min="0"
+                />
+              </div>
+
+              {formData.experience_points > 0 && (
+                <div className="bg-gray-700 rounded-lg p-3">
+                  <label className="block text-sm font-medium mb-2">Current Rank</label>
+                  <div className={`inline-flex items-center px-3 py-2 rounded-lg ${getUnitRank(formData.experience_points).bgColor}`}>
+                    <span className="mr-2 text-lg">{getUnitRank(formData.experience_points).icon}</span>
+                    <span className={`font-semibold ${getUnitRank(formData.experience_points).color}`}>
+                      {getUnitRank(formData.experience_points).name}
+                    </span>
+                    <span className="ml-2 text-sm text-gray-300">({formData.experience_points} XP)</span>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-2">Unit Type</label>
